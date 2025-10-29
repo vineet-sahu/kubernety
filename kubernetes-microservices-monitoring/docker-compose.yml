@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+
+  service-a:
+    build:
+      context: ./services/service-a-api-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3000"
+    environment:
+      - REDIS_HOST=redis
+      - PORT=3000
+    depends_on:
+      - redis
+
+  service-b:
+    build:
+      context: ./services/service-b-worker
+      dockerfile: Dockerfile
+    environment:
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+    deploy:
+      replicas: 2
+
+  service-c:
+    build:
+      context: ./services/service-c-stats
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3000"
+    environment:
+      - REDIS_HOST=redis
+      - PORT=3000
+    depends_on:
+      - redis
+
+volumes:
+  redis-data:
